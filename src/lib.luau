@@ -17,7 +17,7 @@ export type Events = {
 const function observePath(targetPath: Path.Path, callback: (Path.Path, Events) -> ())
     assert(
         FileSystem.type(Path.format(targetPath)) == "dir",
-        "currently we supports directories only, files will be supported in the future."
+        "currently we support observing directories only, observing files will be supported in the future."
     )
 
     const vtree = VirtualTree.new()
@@ -31,20 +31,23 @@ const function observePath(targetPath: Path.Path, callback: (Path.Path, Events) 
     end
 
     const function connectListener(directoryPath: Path.Path)
-        const node = vtree:walkTo(directoryPath.parts, true)
+        const directoryNode = vtree:walkTo(directoryPath.parts, true)
         const stringifyDirectoryPath = Path.format(directoryPath)
 
         const connection = FileSystem.watch(stringifyDirectoryPath, function(fileName, event)
             const filePath = Path.join(directoryPath, fileName)
             const stringifyPath = Path.format(filePath)
             const isFileExist = FileSystem.exists(stringifyPath)
+            const fileNode = vtree:getNode(directoryNode, fileName)
 
             if not isFileExist then
-                for _, subnode in vtree:querySubnodes(node) do
-                    disconnectListener(subnode)
+                if fileNode then
+                    for _, subnode in vtree:querySubnodes(fileNode) do
+                        disconnectListener(subnode)
+                    end
+                    disconnectListener(fileNode)
+                    vtree:removeNode(fileNode)
                 end
-                disconnectListener(node)
-                vtree:removeNode(node)
                 task.spawn(callback, filePath, { kind = "delete" })
                 return
             end
@@ -53,11 +56,11 @@ const function observePath(targetPath: Path.Path, callback: (Path.Path, Events) 
                 return task.spawn(callback, filePath, { kind = "change" })
             end
 
-            if not vtree:getNode(node, fileName) then
+            if not fileNode then
                 if FileSystem.type(stringifyPath) == "dir" then
                     connectListener(filePath)
                 end
-                vtree:createNode(fileName, node)
+                vtree:createNode(fileName, directoryNode)
                 return task.spawn(callback, filePath, { kind = "create" })
             end
 
@@ -67,7 +70,7 @@ const function observePath(targetPath: Path.Path, callback: (Path.Path, Events) 
 
             return error("unexpected behavior")
         end)
-        vtree:writeCache(node, "connection", connection)
+        vtree:writeCache(directoryNode, "connection", connection)
     end
     
     const queryDescendants = StandardFileSystem.walk(targetPath, { recursive = true })
