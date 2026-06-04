@@ -1,5 +1,5 @@
 name = "ndinteractive/lute_watch"
-version = "0.1.0"
+version = "0.1.1"
 description = "A path watcher for Lute"
 authors = ["9e4ches"]
 repository = "https://github.com/nd-interactive/lute-watch"
