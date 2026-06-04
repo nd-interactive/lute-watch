@@ -17,7 +17,7 @@ export type Events = {
 const function observePath(targetPath: Path.Path, callback: (Path.Path, Events) -> ())
     assert(
         FileSystem.type(Path.format(targetPath)) == "dir",
-        "only supports directory, file will be supported in the future."
+        "currently we supports directories only, files will be supported in the future."
     )
 
     const vtree = VirtualTree.new()
@@ -55,7 +55,6 @@ const function observePath(targetPath: Path.Path, callback: (Path.Path, Events) 
 
             if not vtree:getNode(node, fileName) then
                 if FileSystem.type(stringifyPath) == "dir" then
-                    print("connect")
                     connectListener(filePath)
                 end
                 vtree:createNode(fileName, node)
